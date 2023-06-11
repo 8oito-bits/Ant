@@ -4,49 +4,6 @@
 
 #define PAGE_SIZE 4096
 
-static INTN is_elf(struct elf *);
-static INTN load_program_header(struct elf *elf_info);
-static INTN load_section_header(struct elf *elf_info);
-
-INTN elf_parse(struct elf *elf_info)
-{
-  EFI_FILE_PROTOCOL *file_interface = elf_info->file_interface;
-
-  UINTN size = sizeof(struct elf_64_header);
-  if(fat_read_file(file_interface, &size, &elf_info->elf_header))
-    return 1;
-  
-  if(!is_elf(elf_info))
-    return 1;
-  
-  if(load_program_header(elf_info))
-    return 1;
-
-  UINTN i;
-  UINTN kernel_size = 0; 
-  UINT64 p_memsz, p_align;
-  for(i = 0; i < elf_info->elf_header.e_phnum; i++)
-  {
-    p_align = elf_info->program_header[i].p_align;
-    p_memsz = elf_info->program_header[i].p_memsz;
-    // Is aligned?
-    if(p_memsz & p_align - 1)
-    {
-      // Align size.
-      kernel_size += p_memsz + (p_align - 1) & ~(p_align - 1);
-      printf(L"size aligned = %i\r\n", kernel_size);
-    }
-  }
-
-  if(load_section_header(elf_info))
-    return 1;
-
-  for(i = 0; i < elf_info->elf_header.e_shnum; i++)
-    printf(L"sh_addr: %x\r\n", elf_info->section_header[i].sh_addr);
-
-  return 0;
-}
-
 // Alloc and load program header of elf.
 static INTN load_program_header(struct elf *elf_info)
 {
@@ -79,8 +36,48 @@ static INTN load_section_header(struct elf *elf_info)
   return 0;
 }
 
+static void compute_kernel_size(struct elf *elf_info)
+{
+  UINTN i;
+  UINTN kernel_size = 0;
+  UINT64 p_memsz, p_align;
+  for(i = 0; i < elf_info->elf_header.e_phnum; i++)
+  {
+    p_align = elf_info->program_header[i].p_align;
+    p_memsz = elf_info->program_header[i].p_memsz;
+    // Is aligned?
+    if(p_memsz & p_align - 1)
+      // Align size.
+      kernel_size += p_memsz + (p_align - 1) & ~(p_align - 1);
+  }
+
+  elf_info->kernel_size = kernel_size;
+}
+
 // Check if file is an elf.
 static INTN is_elf(struct elf *elf_info)
 {
   return *((UINT32 *) &elf_info->elf_header.e_ident) == 0x464c457f;
+}
+
+INTN elf_parse(struct elf *elf_info)
+{
+  EFI_FILE_PROTOCOL *file_interface = elf_info->file_interface;
+
+  UINTN size = sizeof(struct elf_64_header);
+  if(fat_read_file(file_interface, &size, &elf_info->elf_header))
+    return 1;
+
+  if(!is_elf(elf_info))
+    return 1;
+
+  if(load_program_header(elf_info))
+    return 1;
+
+  compute_kernel_size(elf_info);
+
+  if(load_section_header(elf_info))
+    return 1;
+
+  return 0;
 }
