@@ -3,6 +3,13 @@
 
 #include <efi.h>
 
+#define PAGE_SIZE 4096
+
+// Used by e_type.
+#define PT_NULL   0   // Program header table entry unused
+#define PT_LOAD   1   // Loadable program segment
+
+
 #define EI_NIDENT 16
 
 // Elf Header Structure for AMD64/x86_64.
@@ -63,5 +70,6 @@ struct elf
 };
 
 INTN elf_parse(struct elf *);
+INTN elf_load_kernel(struct elf *);
 
 #endif
