@@ -1,6 +1,7 @@
 #include <libefi.h>
 #include <elf.h>
 #include <fat.h>
+#include <align.h>
 
 // Alloc and load program header of elf.
 static INTN load_program_header(struct elf *elf_info)
@@ -50,7 +51,7 @@ static void compute_kernel_size(struct elf *elf_info)
       // Is aligned?
       if(p_memsz & p_align - 1)
         // Align size.
-        kernel_size += p_memsz + (p_align - 1) & ~(p_align - 1);
+        kernel_size += ALIGNUP(p_memsz, p_align) /*p_memsz + (p_align - 1) & ~(p_align - 1)*/;
     }
   }
 
@@ -106,7 +107,7 @@ INTN elf_load_kernel(struct elf *elf_info)
   EFI_FILE_PROTOCOL *file_interface = elf_info->file_interface;
   for(i = 0; i < elf_info->elf_header.e_phnum; i++)
   {
-    size = 4096;
+    size = ALIGNUP(elf_info->program_header[i].p_memsz, elf_info->program_header[i].p_align);
     address = elf_info->program_header[i].p_paddr;
     position = elf_info->program_header[i].p_offset;
     fat_set_position(file_interface, position);
