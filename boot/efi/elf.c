@@ -86,6 +86,13 @@ INTN elf_parse(struct elf *elf_info)
   return 0;
 }
 
+VOID elf_clear_all(struct elf *elf_info)
+{
+  elf_info->file_interface->Close(elf_info->file_interface);
+  BS->FreePool(elf_info->program_header);
+  BS->FreePool(elf_info->section_header);
+}
+
 INTN elf_load_kernel(struct elf *elf_info)
 {
   EFI_STATUS status;

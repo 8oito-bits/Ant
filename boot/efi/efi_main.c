@@ -53,6 +53,8 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
   if(elf_load_kernel(&kernel_info))
     error(L"elf_load_kernel: Failed to load kernel");
 
+  elf_clear_all(&kernel_info);    
+
   _start_ant = (void (*)(void)) kernel_info.elf_header.e_entry;
   _start_ant();
 

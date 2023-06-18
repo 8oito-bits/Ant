@@ -70,6 +70,7 @@ struct elf
 };
 
 INTN elf_parse(struct elf *);
+VOID elf_clear_all(struct elf *elf_info);
 INTN elf_load_kernel(struct elf *);
 
 #endif
